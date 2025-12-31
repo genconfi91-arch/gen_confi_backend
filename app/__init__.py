@@ -1,0 +1,2 @@
+"""FastAPI PostgreSQL API application."""
+
