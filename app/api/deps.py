@@ -7,9 +7,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.security import decode_access_token
+from app.core.config import settings
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserResponse
-from app.models.user import User
+from app.models.user import User, UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -56,6 +57,18 @@ def get_current_user(
     user_id: Optional[str] = payload.get("sub")
     if user_id is None:
         raise credentials_exception
+        
+    # Check for Hardcoded Admin
+    if user_id == "0":
+        email = payload.get("email")
+        if email == settings.ADMIN_EMAIL:
+            return UserResponse(
+                id=0,
+                email=settings.ADMIN_EMAIL,
+                name="System Admin",
+                role=UserRole.ADMIN,
+                phone="0000000000"
+            )
     
     try:
         user_id_int = int(user_id)
@@ -69,4 +82,3 @@ def get_current_user(
         raise credentials_exception
     
     return UserResponse.model_validate(user)
-

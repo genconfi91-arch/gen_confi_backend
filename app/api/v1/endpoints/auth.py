@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_database, get_current_user
 from app.services.auth_service import AuthService
-from app.schemas.auth import SignupRequest, LoginRequest, LoginResponse
+from app.schemas.auth import SignupRequest, LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.user import UserResponse
 
 router = APIRouter()
@@ -68,6 +68,48 @@ def login(
     return service.login(login_data)
 
 
+@router.post(
+    "/forgot-password",
+    summary="Forgot password",
+    description="Request password reset token",
+    tags=["auth"]
+)
+def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_database)
+):
+    """
+    Request password reset.
+    
+    Args:
+        request: ForgotPasswordRequest with email
+        db: Database session
+    """
+    service = AuthService(db)
+    return service.forgot_password(request)
+
+
+@router.post(
+    "/reset-password",
+    summary="Reset password",
+    description="Reset password using token",
+    tags=["auth"]
+)
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_database)
+):
+    """
+    Reset password with token.
+    
+    Args:
+        request: ResetPasswordRequest with token and new password
+        db: Database session
+    """
+    service = AuthService(db)
+    return service.reset_password(request)
+
+
 @router.get(
     "/me",
     response_model=UserResponse,
@@ -88,4 +130,3 @@ def get_current_user_info(
         UserResponse with current user data
     """
     return current_user
-

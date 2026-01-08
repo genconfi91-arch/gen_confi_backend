@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import SignupRequest, LoginRequest, LoginResponse
+from app.schemas.auth import SignupRequest, LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.user import UserResponse
 from app.models.user import User, UserRole
-from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.security import get_password_hash, verify_password, create_access_token, decode_access_token
+from app.core.config import settings
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -53,27 +54,18 @@ class AuthService:
             # Hash password
             hashed_password = get_password_hash(signup_data.password)
             
-            # Create user with hashed password
+            # Create user with hashed password using repository
             from app.schemas.user import UserCreate
             user_data = UserCreate(
                 email=signup_data.email,
                 name=signup_data.name,
                 phone=signup_data.phone,
+                gender=signup_data.gender,
                 role=UserRole.CLIENT  # Default role for new signups
             )
             
-            # Create user in database with password
-            db_user = User(
-                email=user_data.email,
-                name=user_data.name,
-                phone=user_data.phone,
-                password=hashed_password,
-                role=user_data.role
-            )
-            
-            self.repository.db.add(db_user)
-            self.repository.db.commit()
-            self.repository.db.refresh(db_user)
+            # Create user in database using repository
+            db_user = self.repository.create(user_data, password=hashed_password)
             
             logger.info(f"User signed up: {db_user.email} (ID: {db_user.id})")
             
@@ -95,11 +87,11 @@ class AuthService:
                 detail="Email already registered"
             )
         except Exception as e:
-            logger.error(f"Error during signup: {e}")
+            logger.error(f"Error during signup: {e}", exc_info=True)
             self.repository.db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="An error occurred during signup"
+                detail=f"An error occurred during signup: {str(e)}"
             )
     
     def login(self, login_data: LoginRequest) -> LoginResponse:
@@ -115,33 +107,138 @@ class AuthService:
         Raises:
             HTTPException: If credentials are invalid
         """
-        # Find user by email
-        user = self.repository.get_by_email(login_data.email)
+        # Hardcoded Admin Check
+        if login_data.email == settings.ADMIN_EMAIL and login_data.password == settings.ADMIN_PASSWORD:
+            logger.info("Admin logged in via hardcoded credentials")
+            admin_user = User(
+                id=0,
+                email=settings.ADMIN_EMAIL,
+                name="System Admin",
+                role=UserRole.ADMIN,
+                phone="0000000000"
+            )
+            access_token = self._create_user_token(admin_user)
+            return LoginResponse(
+                access_token=access_token,
+                token_type="bearer",
+                user=UserResponse(
+                    id=0,
+                    email=settings.ADMIN_EMAIL,
+                    name="System Admin",
+                    role=UserRole.ADMIN,
+                    phone="0000000000"
+                )
+            )
+
+        try:
+            # Find user by email
+            user = self.repository.get_by_email(login_data.email)
+            if not user:
+                # Don't reveal if email exists or not (security best practice)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
+            
+            # Verify password
+            if not verify_password(login_data.password, user.password):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid email or password"
+                )
+            
+            logger.info(f"User logged in: {user.email} (ID: {user.id})")
+            
+            # Generate JWT token
+            access_token = self._create_user_token(user)
+            
+            # Return token and user data
+            return LoginResponse(
+                access_token=access_token,
+                token_type="bearer",
+                user=UserResponse.model_validate(user)
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"CRITICAL LOGIN ERROR: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Internal server error during login: {str(e)}"
+            )
+
+    def forgot_password(self, request: ForgotPasswordRequest):
+        """
+        Initiate password reset flow.
+        
+        Args:
+            request: ForgotPasswordRequest with email
+            
+        Returns:
+            Message indicating status
+        """
+        user = self.repository.get_by_email(request.email)
         if not user:
-            # Don't reveal if email exists or not (security best practice)
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
-            )
-        
-        # Verify password
-        if not verify_password(login_data.password, user.password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password"
-            )
-        
-        logger.info(f"User logged in: {user.email} (ID: {user.id})")
-        
-        # Generate JWT token
-        access_token = self._create_user_token(user)
-        
-        # Return token and user data
-        return LoginResponse(
-            access_token=access_token,
-            token_type="bearer",
-            user=UserResponse.model_validate(user)
+            # For security, we respond with success even if email not found
+            # But we'll log it for debugging
+            logger.warning(f"Forgot password requested for non-existent email: {request.email}")
+            return {"message": "If this email is registered, you will receive password reset instructions."}
+
+        # Generate reset token (short lived, e.g., 15 mins)
+        from datetime import timedelta
+        reset_token = create_access_token(
+            data={"sub": str(user.id), "type": "reset"},
+            expires_delta=timedelta(minutes=15)
         )
+        
+        # In a real app, send this via email.
+        # Here we just log it for the developer/demo usage.
+        logger.info(f"PASSWORD RESET TOKEN for {user.email}: {reset_token}")
+        
+        # We can return the token in development mode only
+        if settings.DEBUG:
+            return {
+                "message": "Password reset token generated (DEBUG MODE)",
+                "reset_token": reset_token
+            }
+            
+        return {"message": "If this email is registered, you will receive password reset instructions."}
+
+    def reset_password(self, request: ResetPasswordRequest):
+        """
+        Reset user password using token.
+        
+        Args:
+            request: ResetPasswordRequest with token and new password
+            
+        Returns:
+            Success message
+        """
+        payload = decode_access_token(request.token)
+        if not payload or payload.get("type") != "reset":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token"
+            )
+            
+        user_id = int(payload.get("sub"))
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+            
+        # Update password
+        hashed_password = get_password_hash(request.new_password)
+        
+        # Manually update password since we don't have update_user service method anymore
+        user.password = hashed_password
+        self.repository.db.commit()
+        self.repository.db.refresh(user)
+        
+        logger.info(f"Password reset successful for user: {user.email}")
+        return {"message": "Password has been reset successfully"}
     
     def _create_user_token(self, user: User) -> str:
         """
@@ -159,19 +256,3 @@ class AuthService:
             "role": user.role.value
         }
         return create_access_token(data=token_data)
-    
-    def get_user_by_id(self, user_id: int) -> Optional[UserResponse]:
-        """
-        Get user by ID.
-        
-        Args:
-            user_id: The user ID
-            
-        Returns:
-            UserResponse if found, None otherwise
-        """
-        user = self.repository.get_by_id(user_id)
-        if user:
-            return UserResponse.model_validate(user)
-        return None
-

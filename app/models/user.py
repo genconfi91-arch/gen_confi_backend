@@ -32,5 +32,7 @@ class User(Base):
     name = Column(String(255), nullable=False)
     phone = Column(String(20), nullable=True)
     password = Column(String(255), nullable=False)
-    role = Column(SQLEnum(UserRole), default=UserRole.CLIENT, nullable=False)
+    role = Column(SQLEnum(UserRole, native_enum=False, values_callable=lambda x: [e.value for e in x]), default=UserRole.CLIENT, nullable=False)
+    avatar_url = Column(String(500), nullable=True)
+    gender = Column(String(20), nullable=True)
 

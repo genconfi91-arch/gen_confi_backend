@@ -11,12 +11,24 @@ class SignupRequest(BaseModel):
     email: EmailStr = Field(..., description="User email address")
     phone: str = Field(..., min_length=1, max_length=20, description="User phone number")
     password: str = Field(..., min_length=6, description="User password (minimum 6 characters)")
+    gender: str = Field(..., description="User gender (Male/Female/Other)")
 
 
 class LoginRequest(BaseModel):
     """Schema for user login request."""
     email: EmailStr = Field(..., description="User email address")
     password: str = Field(..., description="User password")
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Schema for forgot password request."""
+    email: EmailStr = Field(..., description="User email address")
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for reset password request."""
+    token: str = Field(..., description="Reset token")
+    new_password: str = Field(..., min_length=6, description="New password")
 
 
 class TokenResponse(BaseModel):
@@ -30,4 +42,3 @@ class LoginResponse(BaseModel):
     access_token: str = Field(..., description="JWT access token")
     token_type: str = Field(default="bearer", description="Token type")
     user: UserResponse = Field(..., description="User information")
-

@@ -12,6 +12,8 @@ class UserBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255, description="User full name")
     phone: Optional[str] = Field(None, max_length=20, description="User phone number")
     role: UserRole = Field(default=UserRole.CLIENT, description="User role")
+    avatar_url: Optional[str] = Field(None, max_length=500, description="Profile photo URL or path")
+    gender: Optional[str] = Field(None, max_length=20, description="User gender")
 
 
 class UserCreate(UserBase):
@@ -25,6 +27,8 @@ class UserUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="User full name")
     phone: Optional[str] = Field(None, max_length=20, description="User phone number")
     role: Optional[UserRole] = Field(None, description="User role")
+    avatar_url: Optional[str] = Field(None, max_length=500, description="Profile photo URL or path")
+    gender: Optional[str] = Field(None, max_length=20, description="User gender")
 
 
 class UserInDB(UserBase):
@@ -37,4 +41,9 @@ class UserInDB(UserBase):
 class UserResponse(UserInDB):
     """Schema for user API response (excludes password)."""
     pass
+
+
+class AvatarUpdate(BaseModel):
+    """Schema for updating only the user avatar."""
+    avatar_url: str = Field(..., description="The URL or Path of the avatar")
 

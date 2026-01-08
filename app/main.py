@@ -1,8 +1,10 @@
 """
 FastAPI application entry point.
 """
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.api.v1.api import api_router
@@ -20,10 +22,23 @@ app = FastAPI(
     openapi_url="/openapi.json"
 )
 
+# Create uploads directory if it doesn't exist
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+# Mount uploads directory to serve static files
+app.mount("/api/v1/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # Configure CORS
+# In development, allow all localhost origins for Flutter web and mobile testing
+cors_origins = settings.cors_origins_list
+if settings.DEBUG:
+    # Allow all localhost origins for development
+    cors_origins = ["*"]  # Allow all origins in debug mode for easier development
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

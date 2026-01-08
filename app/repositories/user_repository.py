@@ -83,9 +83,27 @@ class UserRepository:
         if password is None:
             raise ValueError("Password is required to create a user")
         
+        # Convert enum to its value for database (e.g., 'client' instead of 'CLIENT')
         user_dict = user_data.model_dump()
+        # Get role value and convert to lowercase string
+        role_value = user_dict.pop('role', None)
+        if role_value:
+            # Convert enum name (CLIENT) to enum value (client)
+            if isinstance(role_value, str):
+                role_value_lower = role_value.lower()
+            elif hasattr(role_value, 'value'):
+                role_value_lower = role_value.value
+            else:
+                role_value_lower = str(role_value).lower()
+        else:
+            role_value_lower = 'client'  # Default
+        
         user_dict['password'] = password
+        # Create User object without role first
         db_user = User(**user_dict)
+        # Set role using the enum value (lowercase string)
+        from app.models.user import UserRole
+        db_user.role = UserRole(role_value_lower)
         self.db.add(db_user)
         self.db.commit()
         self.db.refresh(db_user)

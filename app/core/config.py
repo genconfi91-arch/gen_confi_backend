@@ -41,9 +41,13 @@ class Settings(BaseSettings):
     
     # CORS (as string, will be parsed)
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:8000",
+        default="http://localhost:3000,http://localhost:8000,http://10.0.2.2:8000",
         description="Allowed CORS origins (comma-separated)"
     )
+    
+    # Admin Credentials (Hardcoded)
+    ADMIN_EMAIL: str = Field(default="admin@genconfi.com", description="Admin email")
+    ADMIN_PASSWORD: str = Field(default="admin123", description="Admin password")
     
     @property
     def cors_origins_list(self) -> list[str]:
