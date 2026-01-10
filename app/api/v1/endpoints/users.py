@@ -17,7 +17,8 @@ router = APIRouter()
     response_model=List[UserResponse],
     summary="Get all users",
     description="Get a list of all users with pagination (Admin only)",
-    tags=["users"]
+    tags=["users"],
+    dependencies=[Depends(get_current_user)]
 )
 def get_users(
     pagination: PaginationParams = Depends(pagination_params),
@@ -43,7 +44,8 @@ def get_users(
     response_model=UserResponse,
     summary="Get current user",
     description="Get the details of the currently authenticated user",
-    tags=["users"]
+    tags=["users"],
+    dependencies=[Depends(get_current_user)]
 )
 def get_me(
     current_user: UserResponse = Depends(get_current_user)
@@ -57,7 +59,8 @@ def get_me(
     response_model=UserResponse,
     summary="Update current user",
     description="Update the profile details of the currently authenticated user",
-    tags=["users"]
+    tags=["users"],
+    dependencies=[Depends(get_current_user)]
 )
 def update_me(
     user_data: UserUpdate,

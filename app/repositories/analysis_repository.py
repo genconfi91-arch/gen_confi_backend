@@ -128,4 +128,35 @@ class AnalysisRepository:
             self.db.commit()
             self.db.refresh(analysis)
         return analysis
+    
+    def update(
+        self,
+        analysis_id: int,
+        face_analysis: Optional[dict] = None,
+        style_recommendations: Optional[dict] = None,
+        personalized_insights: Optional[dict] = None
+    ) -> Optional[UserAnalysis]:
+        """
+        Update analysis results (all fields at once).
+        
+        Args:
+            analysis_id: Analysis ID
+            face_analysis: Face analysis results as dictionary (optional)
+            style_recommendations: Style recommendations as dictionary (optional)
+            personalized_insights: Personalized insights as dictionary (optional)
+            
+        Returns:
+            Updated UserAnalysis object or None
+        """
+        analysis = self.get_by_id(analysis_id)
+        if analysis:
+            if face_analysis is not None:
+                analysis.face_analysis = face_analysis
+            if style_recommendations is not None:
+                analysis.style_recommendations = style_recommendations
+            if personalized_insights is not None:
+                analysis.personalized_insights = personalized_insights
+            self.db.commit()
+            self.db.refresh(analysis)
+        return analysis
 

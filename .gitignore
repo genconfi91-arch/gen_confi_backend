@@ -81,6 +81,16 @@ dmypy.json
 
 # Project specific
 check_table.py
+check_db.py
+migrate_db.py
 *.bak
 *.tmp
+
+# Documentation (optional - uncomment if you want to exclude docs)
+# docs/
+
+# Uploads (user-generated content)
+uploads/*
+!uploads/.gitkeep
+!uploads/*/.gitkeep
 

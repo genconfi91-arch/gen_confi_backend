@@ -11,7 +11,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '20260108_create_user_analyses'
-down_revision = '20251231_220951_add_auth_fields_to_users'
+down_revision = '20251231_220951'  # Fixed: use the actual revision ID, not the filename
 branch_labels = None
 depends_on = None
 

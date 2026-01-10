@@ -119,32 +119,7 @@ alembic revision --autogenerate -m "Initial migration"
 alembic upgrade head
 ```
 
-### 8. Verify Connection in pgAdmin
-
-To verify the database connection in pgAdmin:
-
-1. **Open pgAdmin** and connect to your local PostgreSQL server:
-   - Host: `localhost`
-   - Port: `5432`
-   - Username: `postgres`
-   - Password: `root`
-
-2. **Navigate to Databases** → `gen_confi`
-
-3. **Check Tables**:
-   - After running `python -m app.db.init_db`, you should see the `users` table
-   - Expand `gen_confi` → `Schemas` → `public` → `Tables`
-
-4. **Verify Table Structure**:
-   - Right-click on `users` table → `View/Edit Data` → `All Rows`
-   - Check columns: `id`, `email`, `name`
-
-5. **Test Query**:
-   ```sql
-   SELECT * FROM users;
-   ```
-
-### 9. Run the Server
+### 8. Run the Server
 
 ```bash
 # Development mode (with auto-reload)
@@ -176,24 +151,30 @@ Database connection and session management:
 ### `app/models/`
 SQLAlchemy ORM models representing database tables:
 - **user.py**: User model with id, email, name
+- **analysis.py**: User analysis model
 
 ### `app/schemas/`
 Pydantic schemas for request/response validation:
 - **user.py**: UserCreate, UserUpdate, UserResponse schemas
+- **auth.py**: Authentication schemas
+- **analysis.py**: Analysis schemas
 
 ### `app/repositories/`
 Data access layer implementing Repository pattern:
 - **user_repository.py**: Database operations for users (CRUD)
+- **analysis_repository.py**: Database operations for analyses
 
 ### `app/services/`
 Business logic layer:
 - **user_service.py**: User business logic, validation, error handling
+- **auth_service.py**: Authentication business logic
+- **analysis_service.py**: Analysis business logic
 
 ### `app/api/`
 API endpoints and routing:
 - **deps.py**: Dependency injection for database sessions
 - **v1/api.py**: API v1 router configuration
-- **v1/endpoints/users.py**: User CRUD endpoints
+- **v1/endpoints/**: Endpoint implementations
 
 ### `app/utils/`
 Utility functions:
@@ -205,58 +186,52 @@ Test files:
 
 ## 🔌 API Endpoints
 
-### Users
+### Authentication
+- `POST /api/v1/auth/signup` - Register a new user
+- `POST /api/v1/auth/login` - Login user
+- `POST /api/v1/auth/forgot-password` - Request password reset
+- `POST /api/v1/auth/reset-password` - Reset password
+- `GET /api/v1/auth/me` - Get current user
 
-- `POST /api/v1/users/` - Create a new user
+### Users
 - `GET /api/v1/users/` - Get all users (with pagination)
 - `GET /api/v1/users/{user_id}` - Get user by ID
-- `PUT /api/v1/users/{user_id}` - Update user
-- `DELETE /api/v1/users/{user_id}` - Delete user
+- `PUT /api/v1/users/me` - Update current user
+- `POST /api/v1/users/me/avatar` - Upload user avatar
+
+### Analysis
+- `POST /api/v1/analysis/complete-analysis` - Create analysis
+- `GET /api/v1/analysis/` - Get user analyses
+- `GET /api/v1/analysis/{id}` - Get analysis by ID
 
 ### Health & Info
-
 - `GET /` - Root endpoint
 - `GET /health` - Health check
 
 ## 📝 Example Requests
 
-### Create User
+### Signup
 
 ```bash
-curl -X POST "http://localhost:8000/api/v1/users/" \
+curl -X POST "http://localhost:8000/api/v1/auth/signup" \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "john.doe@example.com",
-    "name": "John Doe"
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "1234567890",
+    "password": "password123"
   }'
 ```
 
-### Get All Users
+### Login
 
 ```bash
-curl -X GET "http://localhost:8000/api/v1/users/?skip=0&limit=10"
-```
-
-### Get User by ID
-
-```bash
-curl -X GET "http://localhost:8000/api/v1/users/1"
-```
-
-### Update User
-
-```bash
-curl -X PUT "http://localhost:8000/api/v1/users/1" \
+curl -X POST "http://localhost:8000/api/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "John Updated"
+    "email": "john@example.com",
+    "password": "password123"
   }'
-```
-
-### Delete User
-
-```bash
-curl -X DELETE "http://localhost:8000/api/v1/users/1"
 ```
 
 ## 🧪 Testing
@@ -290,7 +265,7 @@ alembic downgrade -1
 ## 🔒 Security Features
 
 - Password hashing using bcrypt
-- JWT token support (configured but not implemented in user endpoints)
+- JWT token authentication
 - CORS middleware configuration
 - Environment-based secret management
 - Input validation using Pydantic
@@ -339,6 +314,15 @@ Required environment variables (see `.env.example`):
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI JSON**: http://localhost:8000/openapi.json
 
+## 📚 Additional Documentation
+
+For more detailed guides, see:
+- `CONTRIBUTING.md` - Development guidelines and code standards
+- `PROJECT_STRUCTURE.md` - Detailed project architecture
+- `START_SERVER.md` - Quick server startup commands
+- `API_SUMMARY.md` - Complete API endpoint documentation
+- `MOBILE_AUTH_GUIDE.md` - Mobile app authentication integration guide
+
 ## 🤝 Contributing
 
 1. Follow clean architecture principles
@@ -349,6 +333,3 @@ Required environment variables (see `.env.example`):
 ## 📄 License
 
 This project is part of the GenConfi application.
-
-#   g e n _ c o n f i _ b a c k e n d  
- 

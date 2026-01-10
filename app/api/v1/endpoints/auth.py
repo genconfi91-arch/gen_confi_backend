@@ -115,7 +115,24 @@ def reset_password(
     response_model=UserResponse,
     summary="Get current user",
     description="Get information about the currently authenticated user",
-    tags=["auth"]
+    tags=["auth"],
+    responses={
+        200: {
+            "description": "Current user information",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "email": "user@example.com",
+                        "name": "John Doe",
+                        "phone": "1234567890",
+                        "role": "client"
+                    }
+                }
+            }
+        },
+        401: {"description": "Unauthorized - Invalid or missing token"}
+    }
 )
 def get_current_user_info(
     current_user: UserResponse = Depends(get_current_user)
