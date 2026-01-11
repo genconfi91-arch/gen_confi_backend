@@ -33,8 +33,7 @@ app = FastAPI(
     ### Features
     - 🔐 JWT-based authentication
     - 👤 User management
-    - 📊 Analysis and insights
-    - 📁 File uploads (avatars, analyses)
+    - 📁 File uploads (avatars)
     
     ### Authentication
     Most endpoints require authentication. Use the `/auth/login` endpoint to get an access token,
@@ -56,7 +55,7 @@ app = FastAPI(
     },
     servers=[
         {
-            "url": "http://localhost:8000",
+            "url": "http://localhost:8002",
             "description": "Development server"
         },
         {
@@ -140,10 +139,13 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    # Use PORT environment variable or default to 8002 (to avoid conflict with port 8000)
+    port = int(os.getenv("PORT", "8002"))
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=settings.DEBUG
     )
 

@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, status, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
 from app.api.deps import get_database, get_current_user
 from app.services.user_service import UserService
+from app.services.auth_service import AuthService
 from app.schemas.user import UserResponse, UserUpdate, AvatarUpdate
+from app.schemas.auth import ChangePasswordRequest
 from app.models.user import UserRole
 from app.utils.pagination import PaginationParams, pagination_params
 
@@ -120,3 +122,20 @@ async def upload_avatar(
     
     service = UserService(db)
     return service.update_user(current_user.id, UserUpdate(avatar_url=avatar_url))
+
+
+@router.post(
+    "/me/change-password",
+    summary="Change password",
+    description="Change password for the current authenticated user",
+    tags=["users"],
+    dependencies=[Depends(get_current_user)]
+)
+def change_password(
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_database),
+    current_user: UserResponse = Depends(get_current_user)
+):
+    """Change password for current authenticated user."""
+    auth_service = AuthService(db)
+    return auth_service.change_password(current_user.id, request)

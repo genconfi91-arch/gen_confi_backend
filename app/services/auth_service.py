@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from app.repositories.user_repository import UserRepository
-from app.schemas.auth import SignupRequest, LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest
+from app.schemas.auth import SignupRequest, LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest, ChangePasswordRequest
 from app.schemas.user import UserResponse
 from app.models.user import User, UserRole
 from app.core.security import get_password_hash, verify_password, create_access_token, decode_access_token
@@ -239,6 +239,43 @@ class AuthService:
         
         logger.info(f"Password reset successful for user: {user.email}")
         return {"message": "Password has been reset successfully"}
+    
+    def change_password(self, user_id: int, request: ChangePasswordRequest):
+        """
+        Change user password (requires current password).
+        
+        Args:
+            user_id: ID of the user changing password
+            request: ChangePasswordRequest with current and new password
+            
+        Returns:
+            Success message
+            
+        Raises:
+            HTTPException: If current password is incorrect or user not found
+        """
+        user = self.repository.get_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Verify current password
+        if not verify_password(request.current_password, user.password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect"
+            )
+        
+        # Update password
+        hashed_password = get_password_hash(request.new_password)
+        user.password = hashed_password
+        self.repository.db.commit()
+        self.repository.db.refresh(user)
+        
+        logger.info(f"Password changed successfully for user: {user.email}")
+        return {"message": "Password has been changed successfully"}
     
     def _create_user_token(self, user: User) -> str:
         """

@@ -52,6 +52,12 @@ class ResetPasswordRequest(BaseModel):
     new_password: str = Field(..., min_length=6, description="New password")
 
 
+class ChangePasswordRequest(BaseModel):
+    """Schema for change password request."""
+    current_password: str = Field(..., description="Current password")
+    new_password: str = Field(..., min_length=6, description="New password")
+
+
 class TokenResponse(BaseModel):
     """Schema for token response."""
     access_token: str = Field(..., description="JWT access token")

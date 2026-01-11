@@ -41,22 +41,8 @@ class Settings(BaseSettings):
     
     # CORS (as string, will be parsed)
     CORS_ORIGINS: str = Field(
-        default="http://localhost:3000,http://localhost:8000,http://10.0.2.2:8000",
+        default="http://localhost:3000,http://localhost:8002,http://10.0.2.2:8002",
         description="Allowed CORS origins (comma-separated)"
-    )
-    
-    # Groomify ML Service Configuration
-    GROOMIFY_ML_API_URL: str = Field(
-        default="http://localhost:8001",
-        description="Groomify ML service API URL"
-    )
-    GROOMIFY_ML_TIMEOUT: int = Field(
-        default=120,
-        description="Groomify ML API request timeout in seconds"
-    )
-    GROOMIFY_ML_RETRY_COUNT: int = Field(
-        default=2,
-        description="Number of retries for groomify_ml API calls"
     )
     
     # Admin Credentials (Hardcoded)
